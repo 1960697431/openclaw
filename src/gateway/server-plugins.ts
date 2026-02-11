@@ -14,6 +14,48 @@ export function loadGatewayPlugins(params: {
   coreGatewayHandlers: Record<string, GatewayRequestHandler>;
   baseMethods: string[];
 }) {
+  const dispatchMessage = async (params: import("../plugins/types.js").PluginSendMessageParams) => {
+    const { deliverOutboundPayloads } = await import("../infra/outbound/deliver.js");
+    const { loadConfig } = await import("../config/config.js");
+    const { resolveOutboundTarget } = await import("../infra/outbound/targets.js");
+
+    const cfg = loadConfig();
+    const resolved = resolveOutboundTarget({
+      channel: params.channel,
+      to: params.to,
+      cfg,
+      accountId: params.accountId,
+      mode: "explicit",
+    });
+
+    if (!resolved.ok) {
+      return { ok: false, error: String(resolved.error) };
+    }
+
+    try {
+      const results = await deliverOutboundPayloads({
+        cfg,
+        channel: params.channel,
+        to: resolved.to,
+        accountId: params.accountId,
+        payloads: [{ text: params.message }],
+      });
+
+      const last = results.at(-1);
+      if (!last) {
+        return { ok: false, error: "No delivery result" };
+      }
+
+      if ("error" in last) {
+        return { ok: false, error: String(last.error) };
+      }
+
+      return { ok: true, messageId: last.messageId };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  };
+
   const pluginRegistry = loadOpenClawPlugins({
     config: params.cfg,
     workspaceDir: params.workspaceDir,
@@ -24,6 +66,7 @@ export function loadGatewayPlugins(params: {
       debug: (msg) => params.log.debug(msg),
     },
     coreGatewayHandlers: params.coreGatewayHandlers,
+    dispatchMessage,
   });
   const pluginMethods = Object.keys(pluginRegistry.gatewayHandlers);
   const gatewayMethods = Array.from(new Set([...params.baseMethods, ...pluginMethods]));

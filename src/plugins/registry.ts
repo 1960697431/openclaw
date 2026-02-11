@@ -141,6 +141,9 @@ export type PluginRegistryParams = {
   logger: PluginLogger;
   coreGatewayHandlers?: GatewayRequestHandlers;
   runtime: PluginRuntime;
+  dispatchMessage?: (
+    params: import("./types.js").PluginSendMessageParams,
+  ) => Promise<import("./types.js").PluginSendMessageResult>;
 };
 
 export function createPluginRegistry(registryParams: PluginRegistryParams) {
@@ -483,6 +486,12 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
       runtime: registryParams.runtime,
       logger: normalizeLogger(registryParams.logger),
       registerTool: (tool, opts) => registerTool(record, tool, opts),
+      sendMessage: async (params) => {
+        if (!registryParams.dispatchMessage) {
+          return { ok: false, error: "sendMessage not available in this context" };
+        }
+        return registryParams.dispatchMessage(params);
+      },
       registerHook: (events, handler, opts) =>
         registerHook(record, events, handler, opts, params.config),
       registerHttpHandler: (handler) => registerHttpHandler(record, handler),

@@ -36,6 +36,9 @@ export type PluginLoadOptions = {
   coreGatewayHandlers?: Record<string, GatewayRequestHandler>;
   cache?: boolean;
   mode?: "full" | "validate";
+  dispatchMessage?: (
+    params: import("./types.js").PluginSendMessageParams,
+  ) => Promise<import("./types.js").PluginSendMessageResult>;
 };
 
 const registryCache = new Map<string, PluginRegistry>();
@@ -192,6 +195,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     logger,
     runtime,
     coreGatewayHandlers: options.coreGatewayHandlers as Record<string, GatewayRequestHandler>,
+    dispatchMessage: options.dispatchMessage,
   });
 
   const discovery = discoverOpenClawPlugins({

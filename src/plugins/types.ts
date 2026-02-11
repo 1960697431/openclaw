@@ -274,12 +274,35 @@ export type OpenClawPluginApi = {
    */
   registerCommand: (command: OpenClawPluginCommandDefinition) => void;
   resolvePath: (input: string) => string;
+  /**
+   * Send a proactive message to a channel.
+   */
+  sendMessage: (params: PluginSendMessageParams) => Promise<PluginSendMessageResult>;
   /** Register a lifecycle hook handler */
   on: <K extends PluginHookName>(
     hookName: K,
     handler: PluginHookHandlerMap[K],
     opts?: { priority?: number },
   ) => void;
+};
+
+export type PluginSendMessageParams = {
+  /** The channel to send to (e.g. "telegram", "discord") */
+  channel: string;
+  /** The target address (e.g. chat ID, phone number) */
+  to: string;
+  /** The message text content */
+  message: string;
+  /** Optional account ID to send from */
+  accountId?: string;
+  /** Optional session key to associate with the message */
+  sessionKey?: string;
+};
+
+export type PluginSendMessageResult = {
+  ok: boolean;
+  messageId?: string;
+  error?: string;
 };
 
 export type PluginOrigin = "bundled" | "global" | "workspace" | "config";
